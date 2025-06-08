@@ -16,12 +16,13 @@ func main() {
 		"https://www.google.com",
 		"https://www.github.com",
 		"http://www.youtube.com",
+
 		"https://www.asdefrfsfeasdwdwa.com", // return a status not ok
 	}
 
 	urlChan := make(chan string) // send a data
 	getStatus := make(chan URL)
-	numberWorkers := 3
+	numberWorkers := 4
 
 	var wg sync.WaitGroup
 
@@ -47,20 +48,26 @@ func main() {
 	close(getStatus)
 }
 
+// check if the url is valid
 func checker(id int, urlChan <-chan string, urlGetChan chan<- URL, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	for url := range urlChan {
 		fmt.Println("Testing url", id, url)
-		resp, err := http.Get(url)
-		status := 0
-		if err != nil {
-			fmt.Println("Error or invalid URL", id, url, err)
-			return
-		} else {
-			status = resp.StatusCode
-			resp.Body.Close()
-		}
-		urlGetChan <- URL{url: url, urlStatus: status}
+
+		newStatus := HTTPReq(id, url)
+		urlGetChan <- URL{url: url, urlStatus: newStatus}
 	}
+}
+
+func HTTPReq(id int, url string) int {
+	resp, err := http.Get(url)
+	status := 0
+	if err != nil {
+		fmt.Println("Error or invalid URL", id, url, err)
+	} else {
+		status = resp.StatusCode
+		resp.Body.Close()
+	}
+	return status
 }
